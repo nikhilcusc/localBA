@@ -1,0 +1,7 @@
+numpy
+nibabel
+onnx==1.16.1
+onnxruntime
+torch
+scipy
+pandas

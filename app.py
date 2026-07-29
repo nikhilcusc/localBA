@@ -53,7 +53,7 @@ def make_3view_figure(volume, slice_idx, vmin, vmax, title, colorscale="Viridis"
     fig = make_subplots(
         rows=1,
         cols=3,
-        subplot_titles=("Axial", "Sagittal", "Coronal"),
+        subplot_titles=("View 1", "View 2", "View 3"),
         horizontal_spacing=0.06,
     )
 
@@ -74,8 +74,8 @@ def make_3view_figure(volume, slice_idx, vmin, vmax, title, colorscale="Viridis"
         title=title,
         coloraxis=dict(
             colorscale=colorscale,
-            cmin=float(vmin),
-            cmax=float(vmax),
+            cmin=int(vmin),
+            cmax=int(vmax),
             colorbar=dict(title="Value"),
         ),
         height=450,
@@ -100,23 +100,42 @@ def infer_and_initialize(mgz_path):
     try:
         brain, pred = run_one_case(mgz_path)
 
-        global_min = float(min(np.min(brain), np.min(pred)))
-        global_max = float(max(np.max(brain), np.max(pred)))
+        # Compute statistics from the prediction
+        nonzero = pred[pred != 0]      # optional: ignore background
+
+        mean = float(np.mean(nonzero))
+        # or: mean = float(np.mean(pred))
+
+        vmin = mean - 5
+        vmax = mean + 5
+        gr.update(
+            minimum=float(np.min(pred)),
+            maximum=float(np.max(pred)),
+            value=vmin,
+            step=0.01,
+        ),
+
+        gr.update(
+            minimum=float(np.min(pred)),
+            maximum=float(np.max(pred)),
+            value=vmax,
+            step=0.01,
+        ),
         max_slice = int(min(brain.shape[0], brain.shape[1], brain.shape[2]) - 1)
         default_slice = max_slice // 2
 
         input_fig = make_3view_figure(
             brain,
             default_slice,
-            global_min,
-            global_max,
+            vmin,
+            vmax,
             title="Input MRI",
         )
         output_fig = make_3view_figure(
             pred,
             default_slice,
-            global_min,
-            global_max,
+            vmin,
+            vmax,
             title="Prediction",
         )
 
@@ -125,8 +144,7 @@ def infer_and_initialize(mgz_path):
         np.save(npy_path, pred)
 
         status = (
-            f"Done. Input shape: {brain.shape}. "
-            f"Prediction shape: {pred.shape}. "
+            f"Done."
             f"Saved: {npy_path}"
         )
 
@@ -136,8 +154,8 @@ def infer_and_initialize(mgz_path):
             brain,
             pred,
             gr.update(minimum=0, maximum=max_slice, value=default_slice, step=1),
-            gr.update(minimum=global_min, maximum=global_max, value=global_min, step=0.001),
-            gr.update(minimum=global_min, maximum=global_max, value=global_max, step=0.001),
+            gr.update(minimum=vmin, maximum=vmax, value=vmin, step=0.01),
+            gr.update(minimum=vmin, maximum=vmax, value=vmax, step=0.01),
             npy_path,
             status,
         )
@@ -168,21 +186,21 @@ def update_figures(brain, pred, slice_idx, vmin, vmax):
         slice_idx,
         vmin,
         vmax,
-        title=f"Input MRI | slice={slice_idx} | vmin={vmin:.4f} vmax={vmax:.4f}",
+        title=f"Input MRI | slice={slice_idx} | vmin={vmin:.1f} vmax={vmax:.1f}",
     )
     output_fig = make_3view_figure(
         pred,
         slice_idx,
         vmin,
         vmax,
-        title=f"Prediction | slice={slice_idx} | vmin={vmin:.4f} vmax={vmax:.4f}",
+        title=f"Prediction | slice={slice_idx} | vmin={vmin:.1f} vmax={vmax:.1f}",
     )
 
     return input_fig, output_fig
 
 
-with gr.Blocks(title="MRI Inference App") as demo:
-    gr.Markdown("# MRI Inference App")
+with gr.Blocks(title="Local Brain Age Inference App") as demo:
+    gr.Markdown("# Local Brain Age Inference App")
 
     gr.Markdown(
         "Upload one `.mgz` file, run inference, and adjust slice and colorbar limits interactively."
@@ -197,6 +215,13 @@ with gr.Blocks(title="MRI Inference App") as demo:
             file_types=[".mgz"],
             type="filepath",
         )
+
+    gr.Examples(
+    examples=[
+        ["1_brain.mgz"]
+    ],
+    inputs=[mgz_input],
+)
 
     run_btn = gr.Button("Run inference", variant="primary")
 
@@ -225,15 +250,16 @@ with gr.Blocks(title="MRI Inference App") as demo:
 
     # add a note about the tabs
     gr.Markdown(
-        "The following tabs show the input MRI and the local brain age prediction. "
+        "The following tabs show the local brain age prediction and the input MRI. "
         "You can adjust the slice index and colorbar limits using the sliders above."
     )
     with gr.Tabs():
+        with gr.Tab("Local Brain Age Prediction"):
+                    output_plot = gr.Plot()
         with gr.Tab("Input MRI"):
             input_plot = gr.Plot()
 
-        with gr.Tab("Local Brain Age Prediction"):
-            output_plot = gr.Plot()
+        
 
     saved_file = gr.File(label="Saved prediction (.npy)")
     status = gr.Textbox(label="Status", interactive=False)

@@ -62,15 +62,14 @@ def initialize_case(mgz_path: str):
     max_slice = int(min(brain.shape[0], brain.shape[1], brain.shape[2]) - 1)
     default_slice = max_slice // 2
 
-    output_dir = tempfile.mkdtemp(prefix="lba_streamlit_")
-    brain_path = os.path.join(output_dir, "brain_lba.npy")
-    prediction_path = os.path.join(output_dir, "prediction_lba.npy")
+    output_dir = Path(tempfile.mkdtemp(prefix="lba_streamlit_"))
+    brain_path = output_dir / "brain_lba.npy"
+    prediction_path = output_dir / "prediction_lba.npy"
     np.save(brain_path, brain)
     np.save(prediction_path, pred)
 
-    # delete to free memory
+    # delete the in-memory arrays; the files stay on disk and are reopened below
     del brain, pred
-    del brain_path, prediction_path
     gc.collect()
 
     # reopen the saved files as memory-mapped arrays to reduce memory usage
@@ -78,8 +77,8 @@ def initialize_case(mgz_path: str):
     pred_mmap = np.load(prediction_path, mmap_mode="r")
 
     return {
-        "brain_path": brain_path,
-        "pred_path": prediction_path,
+        "brain_path": str(brain_path),
+        "pred_path": str(prediction_path),
         "brain": brain_mmap,
         "pred": pred_mmap,
         "max_slice": max_slice,

@@ -1,4 +1,5 @@
 import os
+import gc
 import tempfile
 from pathlib import Path
 
@@ -36,6 +37,9 @@ def save_uploaded_mgz(uploaded_file) -> str:
 def initialize_case(mgz_path: str):
     brain, pred = run_one_case(mgz_path)
 
+    brain = np.asarray(brain, dtype=np.float16)
+    pred = np.asarray(pred, dtype=np.float16)
+
     nonzero = pred[pred != 0]
     if nonzero.size:
         mean_value = float(np.mean(nonzero))
@@ -59,17 +63,29 @@ def initialize_case(mgz_path: str):
     default_slice = max_slice // 2
 
     output_dir = tempfile.mkdtemp(prefix="lba_streamlit_")
+    brain_path = os.path.join(output_dir, "brain_lba.npy")
     prediction_path = os.path.join(output_dir, "prediction_lba.npy")
+    np.save(brain_path, brain)
     np.save(prediction_path, pred)
 
+    # delete to free memory
+    del brain, pred
+    del brain_path, prediction_path
+    gc.collect()
+
+    # reopen the saved files as memory-mapped arrays to reduce memory usage
+    brain_mmap = np.load(brain_path, mmap_mode="r")
+    pred_mmap = np.load(prediction_path, mmap_mode="r")
+
     return {
-        "brain": brain,
-        "pred": pred,
+        "brain_path": brain_path,
+        "pred_path": prediction_path,
+        "brain": brain_mmap,
+        "pred": pred_mmap,
         "max_slice": max_slice,
         "slice_idx": default_slice,
         "vmin": vmin_default,
         "vmax": vmax_default,
-        "prediction_path": prediction_path,
     }
 
 
@@ -192,7 +208,7 @@ if case_data is not None:
         with tab_input:
             st.plotly_chart(input_fig, width="stretch")
 
-        prediction_path = case_data["prediction_path"]
+        prediction_path = case_data["pred_path"]
         with open(prediction_path, "rb") as file_handle:
             prediction_bytes = file_handle.read()
 

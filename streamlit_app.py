@@ -14,10 +14,14 @@ st.set_page_config(
     layout="wide",
 )
 
-st.title("Local Brain Age Inference App")
+st.title("Local Brain Age Inference")
 st.markdown(
-    "Upload one `.mgz` file, run inference, and adjust slice and colorbar limits interactively."
+    "Upload one `.mgz` file or use one of the bundled examples, then hit the 'Run inference' button to start. After the inference is complete, you can adjust slice and colorbar limits interactively."
 )
+
+APP_DIR = Path(__file__).resolve().parent
+EXAMPLE_MGZ_1 = APP_DIR / "1_brain.mgz"
+EXAMPLE_MGZ_2 = APP_DIR / "2_brain.mgz"
 
 
 def save_uploaded_mgz(uploaded_file) -> str:
@@ -29,8 +33,7 @@ def save_uploaded_mgz(uploaded_file) -> str:
     return tmp_file.name
 
 
-def initialize_case(uploaded_file):
-    mgz_path = save_uploaded_mgz(uploaded_file)
+def initialize_case(mgz_path: str):
     brain, pred = run_one_case(mgz_path)
 
     nonzero = pred[pred != 0]
@@ -60,7 +63,6 @@ def initialize_case(uploaded_file):
     np.save(prediction_path, pred)
 
     return {
-        "mgz_path": mgz_path,
         "brain": brain,
         "pred": pred,
         "max_slice": max_slice,
@@ -71,21 +73,49 @@ def initialize_case(uploaded_file):
     }
 
 
-uploaded_mgz = st.file_uploader("Upload MRI (.mgz)", type=["mgz"])
+input_source = st.radio(
+    "Choose an input source",
+    ["Upload .mgz file", "Use example 1", "Use example 2"],
+    horizontal=True,
+)
+
+uploaded_mgz = None
+selected_mgz_path = None
+
+if input_source == "Upload .mgz file":
+    uploaded_mgz = st.file_uploader("Upload MRI (.mgz)", type=["mgz"])
+elif input_source == "Use example 1":
+    if EXAMPLE_MGZ_1.exists():
+        selected_mgz_path = str(EXAMPLE_MGZ_1)
+        st.caption(f"Using bundled example: {EXAMPLE_MGZ_1.name}")
+    else:
+        st.error(f"Bundled example file not found: {EXAMPLE_MGZ_1.name}")
+elif input_source == "Use example 2":
+    if EXAMPLE_MGZ_2.exists():
+        selected_mgz_path = str(EXAMPLE_MGZ_2)
+        st.caption(f"Using bundled example: {EXAMPLE_MGZ_2.name}")
+    else:
+        st.error(f"Bundled example file not found: {EXAMPLE_MGZ_2.name}")
 
 run_clicked = st.button("Run inference", type="primary", use_container_width=True)
 
 if run_clicked:
-    if uploaded_mgz is None:
-        st.warning("Upload a .mgz file first.")
-    else:
-        with st.spinner("Running inference..."):
-            try:
-                st.session_state.case_data = initialize_case(uploaded_mgz)
-                st.session_state.status = "Done. Prediction saved to a temporary .npy file."
-            except Exception as exc:
-                st.session_state.case_data = None
-                st.session_state.status = f"Error: {exc}"
+    try:
+        if input_source == "Upload .mgz file":
+            if uploaded_mgz is None:
+                st.warning("Upload a .mgz file first.")
+            else:
+                selected_mgz_path = save_uploaded_mgz(uploaded_mgz)
+        elif selected_mgz_path is None:
+            st.warning("The bundled example file is unavailable.")
+
+        if selected_mgz_path is not None:
+            with st.spinner("Running inference..."):
+                st.session_state.case_data = initialize_case(selected_mgz_path)
+                st.session_state.status = "Inference completed successfully. Prediction saved to a temporary .npy file."
+    except Exception as exc:
+        st.session_state.case_data = None
+        st.session_state.status = f"Error: {exc}"
 
 case_data = st.session_state.get("case_data")
 status = st.session_state.get("status")
@@ -115,6 +145,7 @@ if case_data is not None:
             value=int(case_data["slice_idx"]),
             step=1,
         )
+
     pred_min = float(np.min(pred))
     pred_max = float(np.max(pred))
     if pred_min == pred_max:
@@ -126,15 +157,15 @@ if case_data is not None:
             min_value=pred_min,
             max_value=pred_max,
             value=float(case_data["vmin"]),
-            step=0.01,
+            step=0.5,
         )
     with slider_col_3:
         vmax = st.slider(
             "Colorbar maximum",
             min_value=pred_min,
-            max_value=pred_max,
+            max_value=pred_max+20,
             value=float(case_data["vmax"]),
-            step=0.01,
+            step=0.5,
         )
 
     if vmax <= vmin:
@@ -155,18 +186,18 @@ if case_data is not None:
             title=f"Prediction | slice={slice_idx} | vmin={vmin:.1f} vmax={vmax:.1f}",
         )
 
-        tab_pred, tab_input = st.tabs(["Local Brain Age Prediction", "Input MRI"])
+        tab_pred, tab_input = st.tabs(["Local Brain Age", "Input MRI"])
         with tab_pred:
-            st.plotly_chart(output_fig, use_container_width=True)
+            st.plotly_chart(output_fig, width="stretch")
         with tab_input:
-            st.plotly_chart(input_fig, use_container_width=True)
+            st.plotly_chart(input_fig, width="stretch")
 
         prediction_path = case_data["prediction_path"]
         with open(prediction_path, "rb") as file_handle:
             prediction_bytes = file_handle.read()
 
         st.download_button(
-            label="Download prediction (.npy)",
+            label="Download map (.npy)",
             data=prediction_bytes,
             file_name=Path(prediction_path).name,
             mime="application/octet-stream",

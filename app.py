@@ -4,8 +4,8 @@ import os
 from gradio_utils import infer_and_initialize, update_figures
 
 
-with gr.Blocks(title="Local Brain Age Inference App") as demo:
-    gr.Markdown("# Local Brain Age Inference App")
+with gr.Blocks(title="Local Brain Age Inference") as demo:
+    gr.Markdown("# Local Brain Age Inference")
 
     gr.Markdown(
         "Upload one `.mgz` file, run inference, and adjust slice and colorbar limits interactively."
@@ -23,7 +23,7 @@ with gr.Blocks(title="Local Brain Age Inference App") as demo:
 
     gr.Examples(
     examples=[
-        ["1_brain.mgz"]
+        ["1_brain.mgz"], ["2_brain.mgz"],
     ],
     inputs=[mgz_input],
 )
@@ -42,14 +42,14 @@ with gr.Blocks(title="Local Brain Age Inference App") as demo:
             minimum=0.0,
             maximum=1.0,
             value=0.0,
-            step=0.001,
+            step=0.5,
             label="Colorbar minimum",
         )
         vmax_slider = gr.Slider(
             minimum=0.0,
             maximum=1.0,
             value=1.0,
-            step=0.001,
+            step=0.5,
             label="Colorbar maximum",
         )
 

@@ -9,3 +9,6 @@ gradio
 matplotlib
 plotly
 streamlit
+fastapi
+uvicorn
+python-multipart

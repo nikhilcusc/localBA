@@ -10,6 +10,27 @@ The framework reframes the brain age estimation problem as a **generative, spati
 
 The output can be converted to **Local Age Gap (LAG = LBA - Chronological Age)**, which highlights areas where the brain appears older or younger than expected for the participant's chronological age.
 
+## Browser / WebGPU Direction
+
+This repository now includes a browser-first migration path that keeps the Python MGZ preprocessing logic and moves only the ONNX inference step into the browser.
+
+- The backend preprocesses `.mgz` volumes and returns a raw `float32` tensor.
+- The React frontend loads `LBAmodel.onnx` through `onnxruntime-web`.
+- The runtime prefers `WebGPU` and falls back to `WASM` if the browser or device does not support WebGPU.
+
+The migration scaffold lives in [WEBGPU_ARCHITECTURE.md](WEBGPU_ARCHITECTURE.md), [backend/app.py](backend/app.py), and [web/](web/).
+
+Suggested dev workflow:
+
+```bash
+python -m uvicorn backend.app:app --reload --port 8000
+cd web
+npm install
+npm run dev
+```
+
+The browser app expects the model to be available at `/models/LBAmodel.onnx` and the example MGZ files at `/examples/1_brain.mgz` and `/examples/2_brain.mgz`.
+
 ## Methodology
 
 ### V-Net Architecture

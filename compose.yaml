@@ -1,0 +1,6 @@
+services:
+  localba:
+    image: localba
+    build:
+      context: .
+      dockerfile: ./Dockerfile

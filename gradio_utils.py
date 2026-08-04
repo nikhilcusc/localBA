@@ -76,7 +76,7 @@ def make_3view_figure(volume, slice_idx, vmin, vmax, title, colorscale="Viridis"
             colorscale=colorscale,
             cmin=int(vmin),
             cmax=int(vmax),
-            colorbar=dict(title="Value"),
+            colorbar=dict(title="Predicted Age (years)"),
         ),
         height=450,
         margin=dict(l=10, r=10, t=60, b=10),

@@ -10,6 +10,51 @@ The framework reframes the brain age estimation problem as a **generative, spati
 
 The output can be converted to **Local Age Gap (LAG = LBA - Chronological Age)**, which highlights areas where the brain appears older or younger than expected for the participant's chronological age.
 
+## Demo
+
+A live demo of the application is available [here](https://usclocalba.streamlit.app/).
+Because this is a free service, it may take a few minutes to load the model and run the inference or might run out of resources if too many users are accessing it simultaneously. For faster results, you can run the app locally using Docker.
+
+## 🚀 Run the App Locally
+
+1. Download the docker image from docker hub:
+``` 
+docker pull ghcr.io/nikhilcusc/localba:latest
+```
+
+2. Check if the image is downloaded successfully:
+```
+docker images
+```
+You should see `ghcr.io/nikhilcusc/localba` in the list of images.
+
+2. Run the docker image to launch the application:
+```
+docker run -d -p 10000:10000 ghcr.io/nikhilcusc/localba:latest
+```
+
+3. Open a browser and go to `http://localhost:10000` to access the app.
+
+4. To view the container, run:
+```
+docker ps
+```
+
+This command lists all running containers. You should see the container running the app in the output. The first column shows the container ID, and the last column shows the command that was used to start the container. You can use this name or the container ID to stop the container later.
+
+5. To stop the app, run:
+```
+docker stop <container_name>
+```
+or
+
+```
+docker stop <container_id>
+```
+
+---
+
+
 ## Methodology
 
 ### V-Net Architecture
@@ -60,10 +105,10 @@ The color scale on the right ranges from -5 y to 5 y. The x axis on the histogra
 
 -----
 
-## Run Inference
+## If you want to run the inference on a large number of subjects, please follow the steps below:
 Run ONNX inference on `.mgz` brain volumes using [main.py](main.py). The script loads a CSV (for metadata), scans a directory for `.mgz` files, and saves predictions as `.npy` files.
 
-## Quick Start
+
 1) Place your inputs:
 - `.mgz` files in `./data/`. These are brain.mgz files obtained from Freesurfer's recon-all pipeline for each subject. Please ensure that the filenames are unique and correspond to the IDs in the CSV file.
 - `ages.csv` in `./data/` (contains chronological ages of the brains in the brainsDir with their corresponding filenames).
@@ -146,10 +191,29 @@ plot3Views function in utils.py:
 
 -----
 
-## Citation
+## 📝 Citation
 
 If you use this work, please cite the original paper:
-Coming soon!
+
+[Deep learning maps local brain aging in relation to cognition across human adulthood](https://www.pnas.org/doi/10.1073/pnas.2532233123)
+
+*Proceedings of the National Academy of Sciences (PNAS)*  
+DOI: https://doi.org/10.1073/pnas.2532233123
+
+
+BibTeX:
 ```
-[Citation for the paper]
+
+@article{
+chaudhari2026dl_lba,
+author = {Nikhil N. Chaudhari  and Owen M. Vega Huerta  and Samayan Bhattacharya  and Nahian F. Chowdhury  and Andrei Irimia  and the Alzheimer’s Disease Neuroimaging Initiative},
+title = {Deep learning maps local brain aging in relation to cognition across human adulthood},
+journal = {Proceedings of the National Academy of Sciences},
+volume = {123},
+number = {32},
+pages = {e2532233123},
+year = {2026},
+doi = {10.1073/pnas.2532233123},
+eprint = {https://www.pnas.org/doi/pdf/10.1073/pnas.2532233123},
+}
 ```

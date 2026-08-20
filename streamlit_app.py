@@ -17,7 +17,7 @@ st.set_page_config(
 
 st.title("Local Brain Age Inference")
 st.markdown(
-    "Upload one FreeSurfer processed `brain.mgz` file or use one of the bundled examples, then hit the 'Run inference' button to start. After the inference is complete, you can adjust slice and colorbar limits interactively."
+    "Use one of the bundled examples or upload one FreeSurfer processed `brain.mgz` file, then hit the 'Run inference' button to start. After the inference is complete, you can adjust slice and colorbar limits interactively."
 )
 
 APP_DIR = Path(__file__).resolve().parent

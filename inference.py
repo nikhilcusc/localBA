@@ -1,6 +1,5 @@
 import argparse
 import os
-
 import nibabel as nib
 import numpy as np
 import onnx
@@ -9,16 +8,19 @@ import scipy.ndimage as ndi
 import torch
 
 
+# Validate model graph once at startup so malformed ONNX files fail fast.
 def load_and_check_model(model_path):
     onnx_model = onnx.load(model_path)
     onnx.checker.check_model(onnx_model)
     print("ONNX model is valid!")
 
 
+# Create one ONNX Runtime session and reuse it across all volumes for performance.
 def create_session(model_path):
     return ort.InferenceSession(model_path)
 
 
+# Prefer CUDA when available; otherwise run on CPU without changing call sites.
 def get_device():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(device)
@@ -31,8 +33,10 @@ def list_mgz_files(brains_dir):
     return mgz_files
 
 
-def inference_onnx(ort_session, brain, device, debug=False):
+
+def inference_onnx(ort_session, brain, device, biasCorr=True, debug=False):
     min_mask_threshold = 0.5
+    biasCoef=[0.67661,21.6]
     mask = (brain > min_mask_threshold).astype(np.bool_)
     if debug:
         print(
@@ -49,6 +53,11 @@ def inference_onnx(ort_session, brain, device, debug=False):
     ort_inputs = {ort_session.get_inputs()[0].name: input_tensor.cpu().numpy()}
     ort_outs = ort_session.run(None, ort_inputs)
     lba = ort_outs[0].squeeze()  # shape (128, 128, 128)
+
+    if biasCorr:
+        # add semi-global bias to the LBA map
+        lba = (lba - biasCoef[1])/biasCoef[0]
+
     if debug:
         print(
             f"ONNX Runtime output shape: {ort_outs[0].shape} and "
@@ -63,6 +72,7 @@ def run_inference(
     save_flag=True,
     save_loc="./outFiles/",
     model_path="LBAmodel.onnx",
+    biasCorr=True,
     debug=False,
 ):
     load_and_check_model(model_path)
@@ -78,7 +88,7 @@ def run_inference(
         img = nib.load(os.path.join(brains_dir, mgz_file))
         data = img.get_fdata()
         brain = ndi.zoom(data, (0.5, 0.5, 0.5))
-        lba_map = inference_onnx(ort_session, brain, device, debug=debug)
+        lba_map = inference_onnx(ort_session, brain, device, biasCorr=True, debug=debug)
         if save_flag:
             np.save(
                 os.path.join(save_loc, mgz_file.replace(".mgz", "_lba.npy")),

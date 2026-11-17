@@ -35,7 +35,7 @@ def load_and_preprocess_mgz(mgz_path: str) -> np.ndarray:
 def run_one_case(mgz_path: str):
     init_backend()
     brain = load_and_preprocess_mgz(mgz_path)
-    pred = inference_onnx(ort_session, brain, device, debug=False)
+    pred = inference_onnx(ort_session, brain, device, biasCorr=True, debug=False)
     return brain, pred
 
 

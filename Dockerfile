@@ -1,6 +1,10 @@
 # For more information, please refer to https://aka.ms/vscode-docker-python
 FROM python:3-slim
 
+LABEL org.opencontainers.image.version="1.1.0"
+LABEL org.opencontainers.image.description="Local brain age MRI inference application"
+LABEL org.opencontainers.image.created="2026-11-17"
+
 # Keeps Python from generating .pyc files in the container
 ENV PYTHONDONTWRITEBYTECODE=1
 

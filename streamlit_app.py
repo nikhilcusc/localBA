@@ -92,19 +92,21 @@ input_source = st.radio(
     "Choose an input source",
     ["Upload .mgz file", "Use example 1", "Use example 2"],
     horizontal=True,
+    index=1,
 )
 
 uploaded_mgz = None
 selected_mgz_path = None
 
-if input_source == "Upload .mgz file":
-    uploaded_mgz = st.file_uploader("Upload MRI (.mgz)", type=["mgz"])
-elif input_source == "Use example 1":
+# make example 1 default
+if input_source == "Use example 1":
     if EXAMPLE_MGZ_1.exists():
         selected_mgz_path = str(EXAMPLE_MGZ_1)
         st.caption(f"Using bundled example: {EXAMPLE_MGZ_1.name}")
     else:
         st.error(f"Bundled example file not found: {EXAMPLE_MGZ_1.name}")
+elif input_source == "Upload .mgz file":
+    uploaded_mgz = st.file_uploader("Upload MRI (.mgz)", type=["mgz"])
 elif input_source == "Use example 2":
     if EXAMPLE_MGZ_2.exists():
         selected_mgz_path = str(EXAMPLE_MGZ_2)
